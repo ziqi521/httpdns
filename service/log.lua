@@ -52,15 +52,10 @@ function log(level, domain, msg)
 			return
 		end
 
-		req_uri = get_service_uri()
-
-		local request_id = ngx.ctx['request-id']
-
 		local server_addr = ngx.var.server_name
 		local client_addr = ngx.var.remote_addr
 
-		local msg_body = string.format('request_id=%s, client=%s, domain=%s, message=%s', 
-			request_id, client_addr, domain, msg)
+		local msg_body = string.format('client=%s, domain=%s, message=%s', client_addr, domain, msg)
 		
 		local log_msg = string.format('<%s> %s %s [%s:%s]: %s', 
 			level, ngx.localtime(), server_addr, 

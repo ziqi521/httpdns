@@ -38,7 +38,7 @@ end
 local function get(key)
 	local usr_cache = ngx.shared.usr_cache
 	local value = usr_cache:get(key)
-	if not value then
+	if not value or value =='null' then
 		value = redis_srv.get(key)
 		if value then
 			local exptime = tonumber(global.get_config('cache-timeout', '60'))

@@ -11,6 +11,7 @@
 ]]
 
 local cjson = require 'cjson'
+local global = require 'global'
 
 local function redis_facrory(h)
     
@@ -84,14 +85,20 @@ local function redis_facrory(h)
 	h.connect = function()
 
 		if not h.host then
-			h.host = "127.0.0.1"
+			h.host = global.get_config('redis-host', '127.0.0.1')
 		end
 		if not h.port then
-			h.port = 6379
+			h.port = tonumber(global.get_config('redis-port', '6379'))
+		end
+		if not h.pass then
+			h.pass = global.get_config('redis-pass', '')
+		end
+		if not h.database then
+			h.database = tonumber(global.get_config('redis-db', '0'))
 		end
 
 		local instance = h.redis:new()
-		instance:set_timeout(h.timeout)
+		instance:set_timeout(10000)
 		if not instance:connect(h.host, h.port) then 
 			return false, nil
 		end
@@ -187,13 +194,7 @@ local function get_config()
 	return value
 end
 
-local redis_config = {
-	host = get_config('redis-host', '127.0.0.1'),
-	port = tonumber(get_config('redis-port', '6379')),
-	pass = '',
-	timeout = 10000,
-	database = 0,
-}
+local redis_config = {}
 
 do
 	redis = redis_facrory(redis_config)

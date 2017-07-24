@@ -46,31 +46,17 @@ function load_config(refresh)
 		local lines = io_utils:read(cfg_file)
 		if lines then
 
-			local whitelist = ''
-
 			for _, line in pairs(lines) do
 				line = str_utils:trim(line)
 				if not str_utils:startswith(line, '#') and line ~= '' then
 					local values = str_utils:split(line, '=')
 					if table.getn(values) == 2 then
 						local key, value = str_utils:trim(values[1]), str_utils:trim(values[2])
-						if key == 'forward-whitelist' then
-							whitelist = value..';'..whitelist
-						end
 						sys_config:set(key, value, timeout)
 					end
 				end
 			end
-			if str_utils:endswith(whitelist, ';') then
-				whitelist = str_utils:substring(whitelist, 1, string.len(whitelist) - 1)
-			end
-			sys_config:set('forward-whitelist', whitelist, timeout)
-
-			load_redis_nexthop()
-			load_redis_whitelist()
 			
-			load_config_ip()
-
 			sys_config:set('load-config', os.date('%Y-%m-%d %H:%M:%S', os.time()), timeout)
 
 			ngx.log(ngx.WARN, string.format('Load %s success', cfg_file))

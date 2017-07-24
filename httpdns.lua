@@ -34,7 +34,7 @@ function dns(domain_name, client_addr)
 
 			local default_host = domain_cfg['default']
 			
-			local domain_rules = route_cfg['condition']
+			local domain_rules = domain_cfg['condition']
 			if domain_rules then
 				for _, rule in pairs(domain_rules) do
 					
@@ -59,8 +59,7 @@ end
 
 local function response(domain_name, domain_host)
 
-	local body = {'domain' = domain_name, 'host' = host}
-	body = 
+	local body = {domain = domain_name, host = domain_host}
 	
 	ngx.status = ngx.HTTP_OK
 	if body then
@@ -84,7 +83,15 @@ local function exception(code, domain_name, message)
 	ngx.exit(code)
 end
 
-local client_addr = ngx.var.remote_addr
+local function get_client_addr()
+	local client_addr = ngx.req.get_headers()['X-Real-IP']
+	if not client_addr then
+		client_addr = ngx.var.remote_addr
+	end
+	return client_addr
+end
+
+local client_addr = get_client_addr()
 
 local params = ngx.req.get_uri_args()
 local domain_name = params['domain']
