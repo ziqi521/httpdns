@@ -1,13 +1,4 @@
 
---[[
-
-	Huawei API-Gateway
-
-	Author: Huiyugeng (huiyugeng@huawei.com)
-	Date: 2016-07-20
-
-]]
-
 local _M = { _VERSION = '0.1' }
 
 function _M:exists(filename)

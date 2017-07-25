@@ -1,15 +1,4 @@
 
---[[
-
-	Huawei API-Gateway
-
-	Author: Huiyugeng (huiyugeng@huawei.com)
-	Date: 2016-07-20
-	
-	RedisFactory Author:  karminski
-	RedisFactory License: MIT
-]]
-
 local cjson = require 'cjson'
 local global = require 'global'
 

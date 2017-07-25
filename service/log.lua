@@ -1,13 +1,4 @@
 
---[[
-
-	Huawei API-Gateway
-
-	Author: Huiyugeng (huiyugeng@huawei.com)
-	Date: 2016-07-20
-
-]]
-
 local global = require 'global'
 
 local io_utils = require 'utils.io_utils'

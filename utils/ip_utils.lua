@@ -1,13 +1,4 @@
 
---[[
-
-	Huawei API-Gateway
-
-	Author: Huiyugeng (huiyugeng@huawei.com)
-	Date: 2016-07-20
-
-]]
-
 local str_utils = require 'utils.string_utils'
 local tab_utils = require 'utils.table_utils'
 local num_utils = require 'utils.number_utils'
