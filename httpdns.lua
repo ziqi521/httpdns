@@ -2,14 +2,18 @@
 local cjson = require 'cjson'
 local global = require 'global'
 
+local resolver = require "resty.dns"
+
 local cache_srv = require 'service.cache'
 local log_srv = require 'service.log'
 
 local num_utils = require 'utils.number_utils'
 local ip_utils = require 'utils.ip_utils'
 local io_utils = require 'utils.io_utils'
+local str_utils = require 'utils.string_utils'
+local tab_utils = require 'utils.table_utils'
 
-function dns(client_addr, domain_name)
+function http_dns(client_addr, domain_name)
 
 	local domain_str = cache_srv.get(domain_name)
 
@@ -46,8 +50,21 @@ function dns(client_addr, domain_name)
 		end
 	end
 
+	if global.get_config('dns', 'false') == 'true' then
+		local domain_host, err_msg = dns(domain_name)
+		if not domain_host then
+			if err_msg then
+				log_srv.log(log_srv.ERROR, domain_name, err_msg)
+			else
+				log_srv.log(log_srv.ERROR, domain_name, 'Domain from NS is NOT found')
+			end
+		end
+		return domain_host
+	end
+
 	log_srv.log(log_srv.ERROR, domain_name, 'Domain is NOT found')
 	return nil
+	
 end
 
 function select_host(client_addr, domain_name, domain_host, lbp)
@@ -61,15 +78,19 @@ function select_host(client_addr, domain_name, domain_host, lbp)
 
 		local host_idx = 0
 		
-		if lbp == 'polling' then
-			local stat_cache = ngx.shared.stat_cache
-			local seed = stat_cache:get(string.format('%s:%s:cnt', client_addr, domain_name))
-			host_idx = seed % host_size
+		if lbp then
+			if lbp == 'polling' then
+				local stat_cache = ngx.shared.stat_cache
+				local seed = stat_cache:get(string.format('%s:%s:cnt', client_addr, domain_name))
+				host_idx = seed % host_size
+			else
+				local seed = string.sub(ngx.md5(client_addr), -5)
+				host_idx = tonumber(num_utils:hex2dec(seed)) % host_size
+			end
+			return domain_host[host_idx + 1]
 		else
-			local seed = string.sub(ngx.md5(client_addr), -5)
-			host_idx = tonumber(num_utils:hex2dec(seed)) % host_size
+			return tab_utils:join_list(domain_host, ';')
 		end
-		return domain_host[host_idx + 1]
 	end
 end
 
@@ -82,6 +103,42 @@ function stat_dns_access(client_addr, domain_name)
 		stat_cache:set(dns_flag, req_counter)
 	end
 	return req_counter
+end
+
+function dns(domain_name)
+	local ns_cfg = global.get_config('dns-nameserver', '8.8.8.8')
+
+	local r, err = resolver:new {
+		nameservers = tab_utils:split_list(ns_cfg, ';'),
+		retrans = tonumber(global.get_config('dns-retry', '5')),  
+		timeout = tonumber(global.get_config('dns-timeout', '2000')), 
+	}
+
+	if not r then
+		return nil, 'Failed to instantiate the resolver: '..err
+	end
+
+	local answers, err = r:query(domain_name)
+	if not answers then
+		return nil, 'Failed to query the DNS server: '..err
+	end
+
+	if answers.errcode then
+		return nil, string.format('NS error code: %d : %s', answers.errcode, answers.errstr)
+	end
+
+	local domain_host = ''
+	for i, ans in ipairs(answers) do
+		if ans.address then
+			domain_host = ans.address..';'..domain_host
+		elseif ans.cname then
+			domain_host = ans.cname..';'..domain_host
+		end 
+	end
+	if str_utils:endswith(domain_host, ';') then
+		domain_host = str_utils:substring(domain_host, 1, string.len(domain_host) - 1)
+	end
+	return domain_host, nil
 end
 
 function response(domain_name, domain_host)
@@ -124,7 +181,7 @@ local params = ngx.req.get_uri_args()
 local domain_name = params['domain']
 if domain_name then
 
-	local domain_host = dns(client_addr, domain_name)
+	local domain_host = http_dns(client_addr, domain_name)
 	if domain_host then
 		response(domain_name, domain_host)
 	else
