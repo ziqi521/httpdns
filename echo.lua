@@ -21,6 +21,8 @@ local response = {
 	body = body
 }
 
+log_srv.log(log_srv.INFO, 'mock', string.format('access echo %s:%s status:200', ngx.var.request_uri, ngx.req.get_method()))
+
 ngx.req.set_header('Content-Type', 'application/json')
 ngx.req.set_header('Connection', 'close')
 ngx.status = ngx.HTTP_OK
